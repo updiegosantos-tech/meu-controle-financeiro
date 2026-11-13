@@ -1,78 +1,107 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#101010">
 <title>Meu Controle Financeiro</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#101010;color:white;font-family:Arial,sans-serif}
-header{padding:24px 18px;background:#191919;border-bottom:1px solid #333}
-.logo{color:#ffcc00;font-size:22px;font-weight:bold}
-header p{color:#aaa;font-size:12px;margin-bottom:0}
+header{padding:22px 18px;background:#191919;border-bottom:1px solid #333}
+.logo{color:#ffcc00;font-size:21px;font-weight:bold}
+header p{color:#aaa;font-size:12px}
 main{padding:18px;max-width:650px;margin:auto}
 .card{background:#1d1d1d;border:1px solid #333;border-radius:14px;padding:18px;margin-bottom:15px}
-.label{font-size:12px;color:#aaa}
-.balance{font-size:32px;font-weight:bold;margin:10px 0;color:#ffcc00}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.green{color:#52d68a;font-size:21px;font-weight:bold;margin-top:8px}
-.yellow{color:#ffcc00;font-size:21px;font-weight:bold;margin-top:8px}
-h3{margin:0 0 15px}
+h3{margin-top:0}
+label{font-size:13px;color:#ccc}
+input,select{width:100%;padding:13px;margin:7px 0 15px;background:#292929;border:1px solid #444;border-radius:8px;color:white;font-size:15px}
 button{background:#ffcc00;color:#111;border:0;padding:13px 16px;border-radius:9px;font-weight:bold;font-size:14px;cursor:pointer}
 button.secondary{background:#333;color:white}
 button.danger{background:#512727;color:#ffaaaa;padding:8px}
-.add{width:100%;font-size:16px;margin:5px 0 20px}
-input,select{width:100%;padding:13px;margin:7px 0 15px;background:#292929;border:1px solid #444;border-radius:8px;color:white;font-size:15px}
-label{font-size:13px;color:#ccc}
+button.full{width:100%}
+.balance{font-size:32px;font-weight:bold;color:#ffcc00;margin:10px 0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.green{color:#52d68a;font-size:21px;font-weight:bold}
+.yellow{color:#ffcc00;font-size:21px;font-weight:bold}
 .transaction{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #333;padding:13px 0}
-.transaction:last-child{border:0}
 .transaction small{display:block;color:#999;margin-top:5px}
 .amount{font-weight:bold;white-space:nowrap}
 .income{color:#52d68a}
 .expense{color:#ffcc00}
-.actions{display:flex;align-items:center;gap:7px}
-#formArea{display:none}
 .empty{text-align:center;color:#888;padding:25px 5px}
+.hidden{display:none!important}
+.message{padding:12px;border-radius:8px;background:#292929;color:#ffcc00;margin:10px 0;font-size:13px}
 footer{text-align:center;color:#666;font-size:11px;padding:25px}
 </style>
 </head>
 <body>
+
 <header>
  <div class="logo">◆ MEU CONTROLE FINANCEIRO</div>
  <p>ORGANIZE SEU DINHEIRO. CONSTRUA SEU FUTURO.</p>
 </header>
+
 <main>
+
+<section id="authArea" class="card">
+ <h3 id="authTitle">Entrar na sua conta</h3>
+
+ <div id="nameArea" class="hidden">
+  <label>Seu nome</label>
+  <input id="name" placeholder="Digite seu nome">
+ </div>
+
+ <label>E-mail</label>
+ <input id="email" type="email" placeholder="seu@email.com">
+
+ <label>Senha</label>
+ <input id="password" type="password" placeholder="Sua senha">
+
+ <button id="authButton" class="full" onclick="authenticate()">ENTRAR</button>
+ <button id="toggleAuth" class="full secondary" style="margin-top:10px" onclick="toggleMode()">CRIAR CONTA</button>
+
+ <div id="authMessage" class="message hidden"></div>
+</section>
+
+<section id="appArea" class="hidden">
+
+ <div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+   <div>
+    <div class="label">FAMÍLIA</div>
+    <strong id="householdName">Minha família</strong>
+    <small id="userEmail" style="display:block;color:#aaa;margin-top:5px"></small>
+   </div>
+   <button class="secondary" onclick="logout()">SAIR</button>
+  </div>
+ </div>
+
  <div class="card">
   <div class="label">SALDO DO MÊS</div>
   <div class="balance" id="balance">R$ 0,00</div>
   <div class="stats">
-   <div>
-    <div class="label">RECEITAS</div>
-    <div class="green" id="income">R$ 0,00</div>
-   </div>
-   <div>
-    <div class="label">DESPESAS</div>
-    <div class="yellow" id="expenses">R$ 0,00</div>
-   </div>
+   <div><div class="label">RECEITAS</div><div class="green" id="income">R$ 0,00</div></div>
+   <div><div class="label">DESPESAS</div><div class="yellow" id="expenses">R$ 0,00</div></div>
   </div>
  </div>
 
- <button class="add" onclick="showForm()">＋ ADICIONAR MOVIMENTAÇÃO</button>
-
- <div class="card" id="formArea">
-  <h3 id="formTitle">Nova movimentação</h3>
+ <div class="card">
+  <h3>Nova movimentação</h3>
   <form id="transactionForm">
    <label>Tipo</label>
    <select id="type">
     <option value="expense">Despesa</option>
     <option value="income">Receita</option>
    </select>
+
    <label>Descrição</label>
-   <input id="description" placeholder="Ex.: Compra no supermercado" required>
+   <input id="description" required placeholder="Ex.: Supermercado">
+
    <label>Valor (R$)</label>
-   <input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required>
+   <input id="amount" type="number" step="0.01" min="0.01" required placeholder="0,00">
+
    <label>Categoria</label>
    <select id="category">
     <option>Alimentação</option>
@@ -90,11 +119,7 @@ footer{text-align:center;color:#666;font-size:11px;padding:25px}
     <option>Renda extra</option>
     <option>Outros</option>
    </select>
-   <label>Quem realizou?</label>
-   <select id="person">
-    <option>Eu</option>
-    <option>Outra pessoa</option>
-   </select>
+
    <label>Forma de pagamento</label>
    <select id="payment">
     <option>Pix</option>
@@ -105,10 +130,11 @@ footer{text-align:center;color:#666;font-size:11px;padding:25px}
     <option>Transferência</option>
     <option>Outro</option>
    </select>
+
    <label>Data</label>
    <input id="date" type="date" required>
-   <button type="submit">SALVAR MOVIMENTAÇÃO</button>
-   <button type="button" class="secondary" onclick="hideForm()">CANCELAR</button>
+
+   <button class="full" type="submit">SALVAR MOVIMENTAÇÃO</button>
   </form>
  </div>
 
@@ -124,111 +150,279 @@ footer{text-align:center;color:#666;font-size:11px;padding:25px}
   </select>
   <div id="transactions"></div>
  </div>
+
+ <div id="appMessage" class="message hidden"></div>
+</section>
 </main>
-<footer>MEU CONTROLE FINANCEIRO • VERSÃO 1.0</footer>
+
+<footer>MEU CONTROLE FINANCEIRO • VERSÃO 2.0</footer>
 
 <script>
-let transactions = JSON.parse(localStorage.getItem("mcf_transactions") || "[]");
+const SUPABASE_URL = "https://zbglnqvjlaishckupqhs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_iPAsOLZaf1CT1FOwnHotgA_8Qpc5pl7";
 
-const money = value => Number(value).toLocaleString("pt-BR",{
- style:"currency",currency:"BRL"
-});
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let householdId = null;
+let transactions = [];
+let signupMode = false;
+
+const $ = id => document.getElementById(id);
 
 function today(){
  return new Date().toLocaleDateString("en-CA");
 }
 
-document.getElementById("date").value=today();
-document.getElementById("monthFilter").value=today().slice(0,7);
+function money(value){
+ return Number(value).toLocaleString("pt-BR",{
+  style:"currency",currency:"BRL"
+ });
+}
 
-function saveData(){
- localStorage.setItem("mcf_transactions",JSON.stringify(transactions));
+function message(id,text){
+ $(id).textContent = text;
+ $(id).classList.remove("hidden");
+}
+
+function clearMessage(id){
+ $(id).classList.add("hidden");
+}
+
+function toggleMode(){
+ signupMode = !signupMode;
+ $("nameArea").classList.toggle("hidden",!signupMode);
+ $("authTitle").textContent = signupMode ? "Criar nova conta" : "Entrar na sua conta";
+ $("authButton").textContent = signupMode ? "CRIAR CONTA" : "ENTRAR";
+ $("toggleAuth").textContent = signupMode ? "JÁ TENHO CONTA" : "CRIAR CONTA";
+ clearMessage("authMessage");
+}
+
+async function authenticate(){
+ clearMessage("authMessage");
+
+ const email = $("email").value.trim();
+ const password = $("password").value;
+ const name = $("name").value.trim();
+
+ if(!email || !password){
+  message("authMessage","Informe seu e-mail e sua senha.");
+  return;
+ }
+
+ $("authButton").disabled = true;
+
+ try{
+  if(signupMode){
+   if(!name){
+    message("authMessage","Informe seu nome.");
+    return;
+   }
+
+   const {data,error} = await db.auth.signUp({
+    email,
+    password,
+    options:{data:{full_name:name}}
+   });
+
+   if(error) throw error;
+
+   if(!data.session){
+    message("authMessage","Cadastro realizado! Confira seu e-mail e clique no link de confirmação. Depois volte e faça login.");
+   }else{
+    message("authMessage","Conta criada! Preparando seu aplicativo...");
+   }
+  }else{
+   const {error} = await db.auth.signInWithPassword({email,password});
+   if(error) throw error;
+   await startApp();
+  }
+ }catch(error){
+  message("authMessage","Erro: "+error.message);
+ }finally{
+  $("authButton").disabled = false;
+ }
+}
+
+async function startApp(){
+ const {data:{user},error:authError} = await db.auth.getUser();
+ if(authError) throw authError;
+ if(!user) return;
+
+ currentUser = user;
+ $("userEmail").textContent = user.email;
+
+ const {data:membership,error:memberError} = await db
+  .from("household_members")
+  .select("household_id, role")
+  .eq("user_id",user.id)
+  .limit(1)
+  .maybeSingle();
+
+ if(memberError) throw memberError;
+
+ if(membership){
+  householdId = membership.household_id;
+ }else{
+  const {data:household,error:createError} = await db
+   .from("households")
+   .insert({
+    name:"Minha família",
+    created_by:user.id
+   })
+   .select("id")
+   .single();
+
+  if(createError) throw createError;
+
+  householdId = household.id;
+
+  const {error:joinError} = await db
+   .from("household_members")
+   .insert({
+    household_id:householdId,
+    user_id:user.id,
+    role:"admin"
+   });
+
+  if(joinError) throw joinError;
+ }
+
+ const {data:household,error:houseError} = await db
+  .from("households")
+  .select("name")
+  .eq("id",householdId)
+  .single();
+
+ if(houseError) throw houseError;
+
+ $("householdName").textContent = household.name;
+
+ $("authArea").classList.add("hidden");
+ $("appArea").classList.remove("hidden");
+
+ $("date").value = today();
+ $("monthFilter").value = today().slice(0,7);
+
+ await loadTransactions();
+}
+
+async function loadTransactions(){
+ const {data,error} = await db
+  .from("transactions")
+  .select("*")
+  .eq("household_id",householdId)
+  .order("occurred_on",{ascending:false})
+  .order("created_at",{ascending:false});
+
+ if(error) throw error;
+
+ transactions = data || [];
  render();
 }
 
-function showForm(){
- document.getElementById("formArea").style.display="block";
- document.getElementById("formArea").scrollIntoView({behavior:"smooth"});
-}
-
-function hideForm(){
- document.getElementById("formArea").style.display="none";
-}
-
-document.getElementById("transactionForm").addEventListener("submit",function(e){
+$("transactionForm").addEventListener("submit",async function(e){
  e.preventDefault();
+ clearMessage("appMessage");
 
- const item={
-  id:Date.now(),
-  type:document.getElementById("type").value,
-  description:document.getElementById("description").value.trim(),
-  amount:Number(document.getElementById("amount").value),
-  category:document.getElementById("category").value,
-  person:document.getElementById("person").value,
-  payment:document.getElementById("payment").value,
-  date:document.getElementById("date").value
+ if(!currentUser || !householdId) return;
+
+ const item = {
+  household_id:householdId,
+  created_by:currentUser.id,
+  paid_by:currentUser.id,
+  type:$("type").value,
+  description:$("description").value.trim(),
+  amount:Number($("amount").value),
+  category:$("category").value,
+  payment_method:$("payment").value,
+  occurred_on:$("date").value
  };
 
- if(!item.description || item.amount<=0 || !item.date)return;
+ if(!item.description || item.amount<=0 || !item.occurred_on) return;
 
- transactions.push(item);
- saveData();
- this.reset();
- document.getElementById("date").value=today();
- hideForm();
+ const button = this.querySelector("button[type=submit]");
+ button.disabled = true;
+
+ try{
+  const {error} = await db.from("transactions").insert(item);
+  if(error) throw error;
+
+  this.reset();
+  $("date").value = today();
+  await loadTransactions();
+  message("appMessage","Movimentação salva com sucesso!");
+ }catch(error){
+  message("appMessage","Não foi possível salvar: "+error.message);
+ }finally{
+  button.disabled = false;
+ }
 });
 
-function removeTransaction(id){
- if(confirm("Deseja realmente excluir esta movimentação?")){
-  transactions=transactions.filter(t=>t.id!==id);
-  saveData();
+async function removeTransaction(id){
+ if(!confirm("Deseja realmente excluir esta movimentação?")) return;
+
+ try{
+  const {error} = await db.from("transactions")
+   .delete()
+   .eq("id",id)
+   .eq("created_by",currentUser.id);
+
+  if(error) throw error;
+  await loadTransactions();
+ }catch(error){
+  message("appMessage","Erro ao excluir: "+error.message);
  }
 }
 
 function render(){
- const month=document.getElementById("monthFilter").value;
- const filter=document.getElementById("typeFilter").value;
+ const month = $("monthFilter").value;
+ const filter = $("typeFilter").value;
 
- const current=transactions.filter(t=>
-  t.date.startsWith(month)
+ const current = transactions.filter(t=>
+  String(t.occurred_on).startsWith(month)
  );
 
- const incomes=current.filter(t=>t.type==="income")
-  .reduce((s,t)=>s+t.amount,0);
+ const incomes = current.filter(t=>t.type==="income")
+  .reduce((s,t)=>s+Number(t.amount),0);
 
- const expenses=current.filter(t=>t.type==="expense")
-  .reduce((s,t)=>s+t.amount,0);
+ const expenses = current.filter(t=>t.type==="expense")
+  .reduce((s,t)=>s+Number(t.amount),0);
 
- document.getElementById("balance").textContent=money(incomes-expenses);
- document.getElementById("income").textContent=money(incomes);
- document.getElementById("expenses").textContent=money(expenses);
+ $("balance").textContent = money(incomes-expenses);
+ $("income").textContent = money(incomes);
+ $("expenses").textContent = money(expenses);
 
- const list=current.filter(t=>filter==="all"||t.type===filter)
-  .sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
-
- const container=document.getElementById("transactions");
+ const list = current.filter(t=>filter==="all"||t.type===filter);
+ const container = $("transactions");
 
  if(!list.length){
-  container.innerHTML='<div class="empty">Nenhuma movimentação neste período.<br>Adicione seu primeiro lançamento!</div>';
+  container.innerHTML='<div class="empty">Nenhuma movimentação neste período.</div>';
   return;
  }
 
- container.innerHTML=list.map(t=>{
-  const date=t.date.split("-").reverse().join("/");
+ container.innerHTML = list.map(t=>{
+  const date = String(t.occurred_on).split("-").reverse().join("/");
+  const description = escapeHTML(t.description);
+  const category = escapeHTML(t.category || "");
+  const payment = escapeHTML(t.payment_method || "");
+
   return `
-  <div class="transaction">
-   <div style="min-width:0">
-    <strong>${escapeHTML(t.description)}</strong>
-    <small>${escapeHTML(t.category)} • ${date}</small>
-    <small>${escapeHTML(t.person)} • ${escapeHTML(t.payment)}</small>
-   </div>
-   <div class="actions">
-    <span class="amount ${t.type==="income"?"income":"expense"}">
-     ${t.type==="income"?"+":"-"}${money(t.amount)}
-    </span>
-    <button class="danger" onclick="removeTransaction(${t.id})">X</button>
-   </div>
-  </div>`;
+   <div class="transaction">
+    <div style="min-width:0">
+     <strong>${description}</strong>
+     <small>${category} • ${date}</small>
+     <small>${payment}</small>
+    </div>
+    <div style="text-align:right">
+     <div class="amount ${t.type==="income"?"income":"expense"}">
+      ${t.type==="income"?"+":"-"}${money(t.amount)}
+     </div>
+     ${t.created_by===currentUser.id
+      ? `<button class="danger" onclick="removeTransaction('${t.id}')">X</button>`
+      : ""}
+    </div>
+   </div>`;
  }).join("");
 }
 
@@ -239,10 +433,36 @@ function escapeHTML(value){
  }[c]));
 }
 
-document.getElementById("monthFilter").addEventListener("change",render);
-document.getElementById("typeFilter").addEventListener("change",render);
+$("monthFilter").addEventListener("change",render);
+$("typeFilter").addEventListener("change",render);
 
-render();
+async function logout(){
+ await db.auth.signOut();
+ currentUser = null;
+ householdId = null;
+ transactions = [];
+ $("appArea").classList.add("hidden");
+ $("authArea").classList.remove("hidden");
+}
+
+db.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_IN" && session && !currentUser){
+  setTimeout(()=>startApp().catch(error=>{
+   message("authMessage","Erro ao preparar o aplicativo: "+error.message);
+  }),0);
+ }
+});
+
+(async function init(){
+ const {data:{session}} = await db.auth.getSession();
+ if(session){
+  try{
+   await startApp();
+  }catch(error){
+   message("authMessage","Erro ao iniciar: "+error.message);
+  }
+ }
+})();
 </script>
 </body>
 </html>
