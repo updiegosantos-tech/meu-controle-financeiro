@@ -1,0 +1,248 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101010">
+<title>Meu Controle Financeiro</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101010;color:white;font-family:Arial,sans-serif}
+header{padding:24px 18px;background:#191919;border-bottom:1px solid #333}
+.logo{color:#ffcc00;font-size:22px;font-weight:bold}
+header p{color:#aaa;font-size:12px;margin-bottom:0}
+main{padding:18px;max-width:650px;margin:auto}
+.card{background:#1d1d1d;border:1px solid #333;border-radius:14px;padding:18px;margin-bottom:15px}
+.label{font-size:12px;color:#aaa}
+.balance{font-size:32px;font-weight:bold;margin:10px 0;color:#ffcc00}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.green{color:#52d68a;font-size:21px;font-weight:bold;margin-top:8px}
+.yellow{color:#ffcc00;font-size:21px;font-weight:bold;margin-top:8px}
+h3{margin:0 0 15px}
+button{background:#ffcc00;color:#111;border:0;padding:13px 16px;border-radius:9px;font-weight:bold;font-size:14px;cursor:pointer}
+button.secondary{background:#333;color:white}
+button.danger{background:#512727;color:#ffaaaa;padding:8px}
+.add{width:100%;font-size:16px;margin:5px 0 20px}
+input,select{width:100%;padding:13px;margin:7px 0 15px;background:#292929;border:1px solid #444;border-radius:8px;color:white;font-size:15px}
+label{font-size:13px;color:#ccc}
+.transaction{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #333;padding:13px 0}
+.transaction:last-child{border:0}
+.transaction small{display:block;color:#999;margin-top:5px}
+.amount{font-weight:bold;white-space:nowrap}
+.income{color:#52d68a}
+.expense{color:#ffcc00}
+.actions{display:flex;align-items:center;gap:7px}
+#formArea{display:none}
+.empty{text-align:center;color:#888;padding:25px 5px}
+footer{text-align:center;color:#666;font-size:11px;padding:25px}
+</style>
+</head>
+<body>
+<header>
+ <div class="logo">◆ MEU CONTROLE FINANCEIRO</div>
+ <p>ORGANIZE SEU DINHEIRO. CONSTRUA SEU FUTURO.</p>
+</header>
+<main>
+ <div class="card">
+  <div class="label">SALDO DO MÊS</div>
+  <div class="balance" id="balance">R$ 0,00</div>
+  <div class="stats">
+   <div>
+    <div class="label">RECEITAS</div>
+    <div class="green" id="income">R$ 0,00</div>
+   </div>
+   <div>
+    <div class="label">DESPESAS</div>
+    <div class="yellow" id="expenses">R$ 0,00</div>
+   </div>
+  </div>
+ </div>
+
+ <button class="add" onclick="showForm()">＋ ADICIONAR MOVIMENTAÇÃO</button>
+
+ <div class="card" id="formArea">
+  <h3 id="formTitle">Nova movimentação</h3>
+  <form id="transactionForm">
+   <label>Tipo</label>
+   <select id="type">
+    <option value="expense">Despesa</option>
+    <option value="income">Receita</option>
+   </select>
+   <label>Descrição</label>
+   <input id="description" placeholder="Ex.: Compra no supermercado" required>
+   <label>Valor (R$)</label>
+   <input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required>
+   <label>Categoria</label>
+   <select id="category">
+    <option>Alimentação</option>
+    <option>Moradia</option>
+    <option>Água e energia</option>
+    <option>Transporte</option>
+    <option>Combustível</option>
+    <option>Saúde</option>
+    <option>Educação</option>
+    <option>Lazer</option>
+    <option>Cartão de crédito</option>
+    <option>Financiamentos</option>
+    <option>Compras</option>
+    <option>Salário</option>
+    <option>Renda extra</option>
+    <option>Outros</option>
+   </select>
+   <label>Quem realizou?</label>
+   <select id="person">
+    <option>Eu</option>
+    <option>Outra pessoa</option>
+   </select>
+   <label>Forma de pagamento</label>
+   <select id="payment">
+    <option>Pix</option>
+    <option>Dinheiro</option>
+    <option>Débito</option>
+    <option>Crédito</option>
+    <option>Boleto</option>
+    <option>Transferência</option>
+    <option>Outro</option>
+   </select>
+   <label>Data</label>
+   <input id="date" type="date" required>
+   <button type="submit">SALVAR MOVIMENTAÇÃO</button>
+   <button type="button" class="secondary" onclick="hideForm()">CANCELAR</button>
+  </form>
+ </div>
+
+ <div class="card">
+  <h3>Movimentações</h3>
+  <label>Filtrar por mês</label>
+  <input type="month" id="monthFilter">
+  <label>Filtrar por tipo</label>
+  <select id="typeFilter">
+   <option value="all">Todas</option>
+   <option value="expense">Despesas</option>
+   <option value="income">Receitas</option>
+  </select>
+  <div id="transactions"></div>
+ </div>
+</main>
+<footer>MEU CONTROLE FINANCEIRO • VERSÃO 1.0</footer>
+
+<script>
+let transactions = JSON.parse(localStorage.getItem("mcf_transactions") || "[]");
+
+const money = value => Number(value).toLocaleString("pt-BR",{
+ style:"currency",currency:"BRL"
+});
+
+function today(){
+ return new Date().toLocaleDateString("en-CA");
+}
+
+document.getElementById("date").value=today();
+document.getElementById("monthFilter").value=today().slice(0,7);
+
+function saveData(){
+ localStorage.setItem("mcf_transactions",JSON.stringify(transactions));
+ render();
+}
+
+function showForm(){
+ document.getElementById("formArea").style.display="block";
+ document.getElementById("formArea").scrollIntoView({behavior:"smooth"});
+}
+
+function hideForm(){
+ document.getElementById("formArea").style.display="none";
+}
+
+document.getElementById("transactionForm").addEventListener("submit",function(e){
+ e.preventDefault();
+
+ const item={
+  id:Date.now(),
+  type:document.getElementById("type").value,
+  description:document.getElementById("description").value.trim(),
+  amount:Number(document.getElementById("amount").value),
+  category:document.getElementById("category").value,
+  person:document.getElementById("person").value,
+  payment:document.getElementById("payment").value,
+  date:document.getElementById("date").value
+ };
+
+ if(!item.description || item.amount<=0 || !item.date)return;
+
+ transactions.push(item);
+ saveData();
+ this.reset();
+ document.getElementById("date").value=today();
+ hideForm();
+});
+
+function removeTransaction(id){
+ if(confirm("Deseja realmente excluir esta movimentação?")){
+  transactions=transactions.filter(t=>t.id!==id);
+  saveData();
+ }
+}
+
+function render(){
+ const month=document.getElementById("monthFilter").value;
+ const filter=document.getElementById("typeFilter").value;
+
+ const current=transactions.filter(t=>
+  t.date.startsWith(month)
+ );
+
+ const incomes=current.filter(t=>t.type==="income")
+  .reduce((s,t)=>s+t.amount,0);
+
+ const expenses=current.filter(t=>t.type==="expense")
+  .reduce((s,t)=>s+t.amount,0);
+
+ document.getElementById("balance").textContent=money(incomes-expenses);
+ document.getElementById("income").textContent=money(incomes);
+ document.getElementById("expenses").textContent=money(expenses);
+
+ const list=current.filter(t=>filter==="all"||t.type===filter)
+  .sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+
+ const container=document.getElementById("transactions");
+
+ if(!list.length){
+  container.innerHTML='<div class="empty">Nenhuma movimentação neste período.<br>Adicione seu primeiro lançamento!</div>';
+  return;
+ }
+
+ container.innerHTML=list.map(t=>{
+  const date=t.date.split("-").reverse().join("/");
+  return `
+  <div class="transaction">
+   <div style="min-width:0">
+    <strong>${escapeHTML(t.description)}</strong>
+    <small>${escapeHTML(t.category)} • ${date}</small>
+    <small>${escapeHTML(t.person)} • ${escapeHTML(t.payment)}</small>
+   </div>
+   <div class="actions">
+    <span class="amount ${t.type==="income"?"income":"expense"}">
+     ${t.type==="income"?"+":"-"}${money(t.amount)}
+    </span>
+    <button class="danger" onclick="removeTransaction(${t.id})">X</button>
+   </div>
+  </div>`;
+ }).join("");
+}
+
+function escapeHTML(value){
+ return String(value).replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",
+  '"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+document.getElementById("monthFilter").addEventListener("change",render);
+document.getElementById("typeFilter").addEventListener("change",render);
+
+render();
+</script>
+</body>
+</html>
